@@ -31,7 +31,7 @@ fun <- function(a) {
   return(result)
 }
 
-#' Select a_range
+#' Select a_limits
 #'
 #' Select a range of values to search for the optimal accrual period a* for a
 #' single stage design with the smallest sample size.  The range must be
@@ -42,7 +42,7 @@ fun <- function(a) {
 #' @param a_max
 #'
 #' @return tuple, range of a values to search
-select_a_range <- function(a_min, a_max){
+select_a_limits <- function(a_min, a_max){
   f_min <- fun(a_min)
   f_max <- fun(a_max)
   
@@ -68,21 +68,21 @@ select_a_range <- function(a_min, a_max){
 
 #' Find a*
 #'
-#' Given a search range, a_range, perform a binary search to identify a*, the
+#' Given a search range, a_limits, perform a binary search to identify a*, the
 #' optimal accrual period for a single-stage design requiring the smallest
 #' sample size.  Stops when the range of possible values for a* is sufficiently
 #' small that the optimal sample size is the same for all values in that range.
 #' Fails if this criterion is not reached within 100 iterations.
 #'
-#' @param a_range
+#' @param a_limits
 #'
 #' @return
 #' @export
 #'
 #' @examples
-find_a_star <- function(a_range){
-  a_min <- a_range[1]
-  a_max <- a_range[2]
+find_a_star <- function(a_limits){
+  a_min <- a_limits[1]
+  a_max <- a_limits[2]
   
   f_min <- fun(a_min)
   f_max <- fun(a_max)

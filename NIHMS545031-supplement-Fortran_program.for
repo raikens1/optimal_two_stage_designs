@@ -229,8 +229,12 @@ c        pause 'Something wrong - 5'
         stop
         end
 
-ccccccccccccccccccccccccccccccccccccccccccccccccccc
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c SUPPORTING FUNCTIONS BY AUTHOR
+c Supporting functions handwritten by the authors
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
+C       Calculate some quantitiy for the selection of single-stage a*
         function fun(a)
         common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
 
@@ -317,6 +321,9 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       END
 
 
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c ZNORM AND SUPPORTING FUNCTIONS
+c Calculates quantiles of standard normal.  Equivalent to qnorm in R
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         function znorm(x)
@@ -447,7 +454,11 @@ CU    USES gammLn
 1     gammcf=exp(-x+a*Log(x)-gLn)*h
       return
       END
-ccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c QROMB AND SUPPORTING FUNCTIONS
+c integrates a function func from a to b
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       SUBROUTINE qromb(func,a,b,ss)
       INTEGER JMAX,JMAXP,K,KM

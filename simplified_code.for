@@ -124,38 +124,47 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
          write(6,107) n,a
 107      format(' Single-stage design: n=',i4,' (a=',f6.3,')')
 
-c 2.
+c 2. Calculate power over a range of values for a, tau and c1
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         write(6,*)
         write(6,*) 'Two-stage designs'
 
         write(6,108)
- 108    format(3x,'n',4x,'(a)',2x,'n1',4x,'tau',6x,'c1',7x,'c',5x,'EA',
+108     format(3x,'n',4x,'(a)',2x,'n1',4x,'tau',6x,'c1',7x,'c',5x,'EA',
      c  5x,'EN',4x,'PET',4x,'pwr',5x,'D1',6x,'D')
 
         a0=a
         ntau=1000
 
+        rho1=0.5
+        rho0=0.11
+        cb1=1.8
+        c21=-3
+        c1=-0.5
+
+        f1=fun2(2.)
+        write(6,*) rho1, cb1
+        write(6,109) f1
+109     format(3x,' fun2 = (',2f8.4,')')
+
       end
 
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-c SUPPORTING FUNCTIONS
-c Supporting functions handwritten by the user
+c SUPPORTING FUNCTIONS BY AUTHOR
+c Supporting functions handwritten by the authors
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         function fun(a)
-c       Calculates expected numbers of events
-c       (v1 and v analogous to D1 and D in manuscript)
-c       Don't understand return value though
+c       Calculates expected numbers of events in final analysis
+c       (D in manuscript)
+c       not entirely sure what return value is
         common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
 
         v1=1-exp(-hz(1)*b)/a/hz(1)+exp(-hz(1)*(a+b))/a/hz(1)
         v0=hz(0)/hz(1)*v1
         hr=hz(0)/hz(1)
         w=v1-v0
-
-c        fun=rate*a*(hr-1)**2*v0-(za+zb)**2
 
         hz1=(hz(0)+hz(1))/2.
         v=1-exp(-hz1*b)/a/hz1+exp(-hz1*(a+b))/a/hz1
@@ -165,42 +174,76 @@ c        fun=rate*a*(hr-1)**2*v0-(za+zb)**2
         return
         end
 
+ccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+        function type1(c)
+        common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
+        externaL fun1
+        caLL qromb(fun1,-10.,c,ss)
+        write(6,*) ss
+
+        type1=ss-aLpha
+
+        return
+        end
+
+ccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+        function fun1(z)
+        common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
+        external cdf
+        phi=2.*asin(1.)
+        fun1=1/sqrt(2.*phi)*exp(-z**2/2.)
+        fun1=fun1*cdf((c1-rho0*z)/sqrt(1-rho0**2))
+        return
+        end
+
+
+        function fun2(z)
+        common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
+        phi=2.*asin(1.)
+        fun2=1/(2*phi)**.5*exp(-z**2/2.)
+        fun2=fun2*cdf((cb1-rho1*z)/sqrt(1-rho1**2))
+        return
+        end
+
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c ZNORM AND SUPPORTING FUNCTIONS
 c Calculates quantiles of standard normal.  Equivalent to qnorm in R
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-        function znorm(x)
-        externaL erf
-        pi=2.*asin(1.)
-        z0=1.
-        do 2 k=1,100
-        f=erf(z0/sqrt(2.))/2.-.5+x
-        df=exp(-z0**2./2.)/sqrt(2.*pi)
-        znorm=z0-f/df
-        if(abs(znorm-z0).Lt..001.and.abs(f).Lt..001) go to 4
-        z0=znorm
- 2      continue
-        write(6,*) 'diverge'
- 4      continue
-        return
-        end
+
+      function znorm(x)
+      externaL erf
+      pi=2.*asin(1.)
+      z0=1.
+      do 2 k=1,100
+      f=erf(z0/sqrt(2.))/2.-.5+x
+      df=exp(-z0**2./2.)/sqrt(2.*pi)
+      znorm=z0-f/df
+      if(abs(znorm-z0).Lt..001.and.abs(f).Lt..001) go to 4
+      z0=znorm
+2      continue
+      write(6,*) 'diverge'
+4      continue
+      return
+      end
 
 
-        function cdf(x)
-        external erf
-        cdf=.5+.5*erf(x/sqrt(2.))
-        return
-        end
+      function cdf(x)
+      external erf
+      cdf=.5+.5*erf(x/sqrt(2.))
+      return
+      end
 
 
-        function erf(x)
-        if(x.Lt.0.) then
-        erf=-gammp(.5,x**2)
-        eLse
-        erf=gammp(.5,x**2)
-        endif
-        return
-        end
+      function erf(x)
+      if(x.Lt.0.) then
+      erf=-gammp(.5,x**2)
+      eLse
+      erf=gammp(.5,x**2)
+      endif
+      return
+      end
 
 
       FUNCTION gammLn(xx)
@@ -295,5 +338,99 @@ CU    USES gammLn
 11    continue
       pause 'a too Large, ITMAX too smaLL in gcf'
 1     gammcf=exp(-x+a*Log(x)-gLn)*h
+      return
+      END
+
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c QROMB AND SUPPORTING FUNCTIONS
+c integrates a function func from a to b
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+      SUBROUTINE qromb(func,a,b,ss)
+      INTEGER JMAX,JMAXP,K,KM
+      REAL a,b,func,ss,EPS
+      EXTERNAL func
+
+      PARAMETER (EPS=1.e-6, JMAX=20, JMAXP=JMAX+1, K=5, KM=K-1)
+CU    USES poLint,trapzd
+      INTEGER j
+      REAL dss,h(JMAXP),s(JMAXP)
+      h(1)=1.
+      do 11 j=1,JMAX
+        caLL trapzd(func,a,b,s(j),j)
+        if (j.ge.K) then
+          caLL poLint(h(j-KM),s(j-KM),K,0.,ss,dss)
+          if (abs(dss).Le.EPS*abs(ss)) return
+        endif
+        s(j+1)=s(j)
+        h(j+1)=0.25*h(j)
+11    continue
+      pause 'too many steps in qromb'
+      END
+
+
+      SUBROUTINE trapzd(func,a,b,s,n)
+      INTEGER n
+      REAL a,b,s,func
+      EXTERNAL func
+      INTEGER it,j
+      REAL deL,sum,tnm,x
+      if (n.eq.1) then
+        s=0.5*(b-a)*(func(a)+func(b))
+      eLse
+        it=2**(n-2)
+        tnm=it
+        deL=(b-a)/tnm
+        x=a+0.5*deL
+        sum=0.
+        do 11 j=1,it
+          sum=sum+func(x)
+          x=x+deL
+11      continue
+        s=0.5*(s+(b-a)*sum/tnm)
+      endif
+      return
+      END
+
+
+
+      SUBROUTINE poLint(xa,ya,n,x,y,dy)
+      INTEGER n,NMAX
+      REAL dy,x,y,xa(n),ya(n)
+      PARAMETER (NMAX=10)
+      INTEGER i,m,ns
+      REAL den,dif,dift,ho,hp,w,c(NMAX),d(NMAX)
+      ns=1
+      dif=abs(x-xa(1))
+      do 11 i=1,n
+        dift=abs(x-xa(i))
+        if (dift.Lt.dif) then
+          ns=i
+          dif=dift
+        endif
+        c(i)=ya(i)
+        d(i)=ya(i)
+11    continue
+      y=ya(ns)
+      ns=ns-1
+      do 13 m=1,n-1
+        do 12 i=1,n-m
+          ho=xa(i)-x
+          hp=xa(i+m)-x
+          w=c(i+1)-d(i)
+          den=ho-hp
+          if(den.eq.0.)pause 'faiLure in poLint'
+          den=w/den
+          d(i)=hp*den
+          c(i)=ho*den
+12      continue
+        if (2*ns.Lt.n-m)then
+          dy=c(ns+1)
+        eLse
+          dy=d(ns)
+          ns=ns-1
+        endif
+        y=y+dy
+13    continue
       return
       END

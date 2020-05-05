@@ -7,8 +7,8 @@
 # Adapted from Kwak and Jung, 2014 
 # Translated from Fortran to R
 
-source("functions.R")
-source("znorm.R")
+source("single_stage_functions.R")
+source("two_stage_functions.R")
 
 # --------------------------------------------------------
 # INPUT PARAMETERS
@@ -68,13 +68,13 @@ message("OUTPUT DESIGN PARAMETERS:")
 message("n:", n)  # in original code, n here is rounded down to the nearest int
 message("a:", a)
 
-# 2. Cacluate power, searching over values for a, tau, and c1
+# 2. Cacluate power, searching over values for a, tau, and c1 (stopping time)
 # --------------------------------------------
-
 a0 <- a
 ntau <- 1000
 
-for (ia in 0:1000){
+
+for (ia in 0:1000){ # 77
   a <- 0.95 * a0 + ia/rate
   if (a > 1.5*a0){
     break
@@ -83,36 +83,66 @@ for (ia in 0:1000){
   eam <- a + b
   ntau <- rate * (a + b)
   
-  for (itau in 0:ntau){
+  for (itau in 0:ntau){ # 88
     tau <- itau/rate
     
-    for (ic1 in 0:1000){
+    for (ic1 in 0:1000){ # 99
       c1 <- -0.5 + 0.005 * ic1
       
-      if(c1 < 1.5){
-        v1 <- 1 - (1 - exp(-hz0 * tau)) / (tau * hz0)
-        v <- 1 - (1 - exp(-hz0 * a)) * exp(-hz0*b) / (a * hz0)
-        
-        s11 <- 1 - (1 - exp(-hz1 * tau)) / (tau * hz1)
-        s1 <- 1 - (1 - exp(-hz1 * a)) * exp(-hz1 * b) / (a * hz1)
-        s01 <- hr * s11 
-        s0 <- hr * s1
-        
-        w1 <- s11 - s01
-        w <- s1 - s0
-        
-        hz.mean <- (hz0 + hz1) / 2
-        s11 <- 1 - (1 - exp(-hz.mean * tau)) / (tau * hz.mean)
-        s1 <- 1 - (1 - exp(-hz.mean * a)) * exp(-hz.mean*b) / (a * hz.mean)
-        rho0 <- sqrt(v1/v)
-        rho1 <- sqrt(s11/s1)
-        
-        c21=-3
-        f1=type1(c21)
-        c22=0
-        f2=type1(c22)
-        
+      if(c1 > 1.5){
+        stop("broken?") # fix this - go to 88
       }
-    }
-  }
-}
+      v1 <- 1 - (1 - exp(-hz0 * tau)) / (tau * hz0)
+      v <- 1 - (1 - exp(-hz0 * a)) * exp(-hz0*b) / (a * hz0)
+      
+      s11 <- 1 - (1 - exp(-hz1 * tau)) / (tau * hz1)
+      s1 <- 1 - (1 - exp(-hz1 * a)) * exp(-hz1 * b) / (a * hz1)
+      s01 <- hr * s11 
+      s0 <- hr * s1
+      
+      w1 <- s11 - s01
+      w <- s1 - s0
+      
+      hz.mean <- (hz0 + hz1) / 2
+      s11 <- 1 - (1 - exp(-hz.mean * tau)) / (tau * hz.mean)
+      s1 <- 1 - (1 - exp(-hz.mean * a)) * exp(-hz.mean*b) / (a * hz.mean)
+      rho0 <- sqrt(v1/v)
+      rho1 <- sqrt(s11/s1)
+      
+      c <- find_c_star()
+      
+      cb1 <- sqrt(s01 / s11) * (c1 - w1 * sqrt(rate * tau)/ sqrt(s01))
+      cb <- sqrt(s0 / s1) * (c - w * sqrt(rate * a) / sqrt(s0))
+      
+      pwr <- integrate(fun2, -10, cb)
+      
+      if (pwr < 1 - beta){
+        stop("broken?") # go to 99
+      }
+      
+      new <- 1
+      pet <- 1 - pnorm(c1)
+      ea <- a - pet * max(0, a - tau)
+      
+      # if we have discovered a new maximum, save the values
+      if (ea < eam) {
+        taum <- tau
+        c1m <- c
+        eam <- ea
+        petm <- pet
+        pwrm <- pwr
+      } 
+    } # 99
+  } # 88
+  if (new == 0) { # why would this ever happen?
+    stop("broken?") # go to 77
+  } 
+  
+  n <- a * rate + 1
+  n1 <- min(taum * rate + 1, n)
+  
+  en <- eam * rate
+  d1 <- rate * taum * (1 - (1 - exp(-hz1 * taum)) / (hz(1) * taum))
+  dd <- n * (1 - exp(-hz1 * b) * (1 - exp(-hz1 * a)) / (hz1 * a))
+} # 77
+
