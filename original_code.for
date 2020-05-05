@@ -216,7 +216,7 @@ c        pause 'Something wrong - 5'
         if(new.eq.0) go to 77
 
         n=a*rate+1
-        n1=min(taum*rate+1,n)
+        n1=min(taum*rate+1,n*1.)
 
         en=eam*rate
         d1=rate*taum*(1-(1-exp(-hz(1)*taum))/hz(1)/taum)

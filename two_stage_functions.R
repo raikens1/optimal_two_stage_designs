@@ -4,16 +4,16 @@
 # Adapted from Kwak and Jung, 2014 
 # Translated from Fortran to R
 
-type1 <- function(c){
-  value <- integrate(fun1, -10, c)$value
+type1 <- function(c, alpha, c1, rho0){
+  value <- integrate(f = fun1, lower = -10, upper = c,
+                     c1 = c1, rho0 = rho0)$value
   return(value - alpha)
 }
 
 # annoyingly, this returns values very close to - but not exactly - what the
 # original code produces - within about (+/-0.001).  Maybe it's just that R is
 # using a more accurate approcimation for the normal cdf?
-fun1 <- function(z){
-  # depends on c1 and rho0 from global environment
+fun1 <- function(z, c1, rho0){
   phi <- 2 * asin(1)
   result <- 1 / sqrt(2 * phi) * exp(-z ** 2 / 2)
   result <- result * pnorm((c1 - rho0 * z))/sqrt(1 - rho0 ** 2)
@@ -21,8 +21,7 @@ fun1 <- function(z){
 }
 
 # much better fidelity to fun2 from original code (=< 0.0001 diffference)
-fun2 <- function(z){
-  # depends on cb1 and rho1 from global environment
+fun2 <- function(z, cb1, rho1){
   phi <- 2 * asin(1)
   result <- 1 / (2 * phi) ** .5 * exp(-z ** 2 / 2)
   result <- result * pnorm((cb1 - rho1 * z)/ sqrt(1 - rho1 ** 2))
@@ -36,33 +35,68 @@ fun2 <- function(z){
 #' between alpha and type 1 error rate is < 0.001. Fails if this criterion is
 #' not reached within 100 iterations.
 #'
-#' @param a_range
+#' @param alpha float - type 1 error rate
+#' @param c1 float - early stopping value
+#' @param rho0 float - not sure what this is, tbh TODO
 #'
 #' @return
 #' @export
 #'
 #' @examples
-find_c_star <- function(){
-  c21 <- -3
-  f1 <- type1(c21) 
-  c22 <- 0
-  f2 <- type1(c22)
+find_c_star <- function(alpha, c1, rho0){
+  c_min <- -3
+  f_min <- type1(c_min, alpha, c1, rho0) 
+  c_max <- 0
+  f_max <- type1(c_max, alpha, c1, rho0)
   
-  if(f1 * f2 > 0) {stop("Error finding c*: not in starting range")}
+  if(f_min * f_max > 0) {stop("Error finding c*: not in starting range")}
   
   for (i in 1:100){
-    c23 <- (c21 + c22)/2
-    f3 <- type1(c23)
-    if(f1 * f3 < 0){
-      c22 <- c23
-      f2 <- f3 
+    c_test <- (c_min + c_max)/2
+    f_test <- type1(c_test, alpha, c1, rho0)
+    if(f_min * f_test < 0){
+      c_max <- c_test
+      f_max <- f_test 
     } else{
-      c21 <- c23
-      f1 <- f3
+      c_min <- c_test
+      f_min <- f_test
     }
-    if (abs(c21-c22) < 0.001 & abs(f3 < 0.001)){
-      return(c23)
+    if (abs(c_min-c_max) < 0.001 & abs(f_test < 0.001)){
+      return(c_test)
     }
   }
   stop("Failed to converge on a value for c* after 100 iterations")
+}
+
+
+calculate_power <- function(hz0, hz1, tau, a, b, c1, alpha, rate){
+  message("Power calculation with parameters:")
+  message(paste("tau: ", tau, "\ta: ", a, "\tc1: ", c1))
+  hr <- hz0/hz1
+  v1 <- 1 - (1 - exp(-hz0 * tau)) / (tau * hz0)
+  v <- 1 - (1 - exp(-hz0 * a)) * exp(-hz0*b) / (a * hz0)
+  
+  s11 <- 1 - (1 - exp(-hz1 * tau)) / (tau * hz1)
+  s1 <- 1 - (1 - exp(-hz1 * a)) * exp(-hz1 * b) / (a * hz1)
+  s01 <- hr * s11 
+  s0 <- hr * s1
+  
+  w1 <- s11 - s01
+  w <- s1 - s0
+  
+  hz.mean <- (hz0 + hz1) / 2
+  s11 <- 1 - (1 - exp(-hz.mean * tau)) / (tau * hz.mean)
+  s1 <- 1 - (1 - exp(-hz.mean * a)) * exp(-hz.mean*b) / (a * hz.mean)
+  rho0 <- sqrt(v1/v)
+  rho1 <- sqrt(s11/s1)
+  
+  c <- find_c_star(alpha, c1, rho0)
+  
+  cb1 <- sqrt(s01 / s11) * (c1 - w1 * sqrt(rate * tau)/ sqrt(s01))
+  cb <- sqrt(s0 / s1) * (c - w * sqrt(rate * a) / sqrt(s0))
+  
+  power <- integrate(f = fun2, lower = -10, upper = cb, 
+                   cb1 = cb1, rho1 = rho1)$value
+  
+  return(list(power = power, c_star = c))
 }

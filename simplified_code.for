@@ -137,16 +137,117 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         a0=a
         ntau=1000
 
-        rho1=0.5
-        rho0=0.11
-        cb1=1.8
-        c21=-3
-        c1=-0.5
+        do 77 ia=0,1000
 
-        f1=fun2(2.)
-        write(6,*) rho1, cb1
-        write(6,109) f1
-109     format(3x,' fun2 = (',2f8.4,')')
+        a=0.95*a0+ia/rate
+        if(a.gt.1.5*a0) stop
+
+        new=0
+
+        eam=a+b
+
+        ntau=rate*(a+b)
+        do 88 itau=1,ntau
+
+        tau=itau/rate
+
+        do 99 ic1=0,1000
+
+        c1=-0.5+0.005*ic1
+
+        if(c1.gt.1.5) go to 88
+
+        v1=1-(1-exp(-hz(0)*tau))/tau/hz(0)
+        v=1-(1-exp(-hz(0)*a))*exp(-hz(0)*b)/a/hz(0)
+        s11=1-(1-exp(-hz(1)*tau))/tau/hz(1)
+        s1=1-(1-exp(-hz(1)*a))*exp(-hz(1)*b)/a/hz(1)
+        s01=hr*s11
+        s0=hr*s1
+        w1=s11-s01
+        w=s1-s0
+
+        hz1=(hz(0)+hz(1))/2.
+        s11=1-(1-exp(-hz1*tau))/tau/hz1
+        s1=1-(1-exp(-hz1*a))*exp(-hz1*b)/a/hz1
+        rho0=sqrt(v1/v)
+        rho1=sqrt(s11/s1)
+
+        c21=-3
+        f1=type1(c21)
+        c22=0
+        f2=type1(c22)
+
+        if(f1*f2.gt.0.) pause'something wrong-4'
+
+        do it=1,100
+
+        c23=(c21+c22)/2.
+        f3=type1(c23)
+
+        if(f1*f3.Lt.0.) then
+        c22=c23
+        f2=f3
+        eLse
+        c21=c23
+        f1=f3
+        endif
+
+        if(abs(c21-c22).Lt..001.and.abs(f3).Lt.0.001) go to 8
+
+        enddo
+
+c        pause 'Something wrong - 5'
+        go to 99
+
+ 8      continue
+
+        c=c23
+
+        cb1=sqrt(s01/s11)*(c1-w1*sqrt(rate*tau)/sqrt(s01))
+        cb=sqrt(s0/s1)*(c-w*sqrt(rate*a)/sqrt(s0))
+
+C        write(6,109) tau,a,c1
+C109     format('power calc params: (tau, a, c1) = (',f8.3,f8.3,f8.3,')')
+
+        temp=fun2(1.) ! This line solves a segfault error.  I have no idea why
+
+        caLL qromb(fun2,-10.,cb,pwr)
+
+
+
+        if(pwr.Lt.1-beta) go to 99
+
+        new=1
+
+        pet=1-cdf(c1)
+        ea=a-pet*amax1(0.,(a-tau))
+
+        if(ea.Lt.eam)then
+        taum=tau
+        c1m=c1
+        cm=c
+        eam=ea
+        petm=pet
+        pwrm=pwr
+        endif
+
+ 99     continue
+ 88     continue
+
+        if(new.eq.0) go to 77
+
+        n=a*rate+1
+        n1=min(taum*rate+1,n*1.)
+
+        en=eam*rate
+        d1=rate*taum*(1-(1-exp(-hz(1)*taum))/hz(1)/taum)
+        dd=n*(1-exp(-hz(1)*b)*(1-exp(-hz(1)*a))/hz(1)/a)
+        write(6,111) n,a,n1,taum,c1m,cm,eam,en,petm,pwrm,d1,dd
+111     format(i4,' (',f4.2,')',i4,f7.2,2f8.3,2f7.2,4f7.2)
+
+77      continue
+
+        stop
 
       end
 
@@ -180,7 +281,6 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccc
         common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
         externaL fun1
         caLL qromb(fun1,-10.,c,ss)
-        write(6,*) ss
 
         type1=ss-aLpha
 
