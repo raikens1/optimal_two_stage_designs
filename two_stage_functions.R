@@ -10,17 +10,37 @@ type1 <- function(c, alpha, c1, rho0){
   return(value - alpha)
 }
 
-# annoyingly, this returns values very close to - but not exactly - what the
-# original code produces - within about (+/-0.001).  Maybe it's just that R is
-# using a more accurate approcimation for the normal cdf?
+#' Equation 9
+#'
+#' Integrand to calculate type 1 error rate from a given rho and c1
+#'
+#' @param z quantitiy to integrate over (from -infty to c)
+#' @param c1 early stopping value
+#' @param rho0 the ratio of sigma values: sigma_1/sigma in the paper, s11/s1 in
+#'   code
+#'
+#' @return
+#' @export
+#'
+#' @examples
 fun1 <- function(z, c1, rho0){
-  phi <- 2 * asin(1)
-  result <- 1 / sqrt(2 * phi) * exp(-z ** 2 / 2)
-  result <- result * pnorm((c1 - rho0 * z))/sqrt(1 - rho0 ** 2)
+  result <- dnorm(z) * pnorm((c1 - rho0 * z)/sqrt(1 - rho0 ** 2))
   return(result)
 }
 
-# much better fidelity to fun2 from original code (=< 0.0001 diffference)
+
+#' Function 2
+#' 
+#' Integrand to calculate power from a given cb1 and rho1
+#'
+#' @param z quantitiy to integrate over (from -infty to cb)
+#' @param cb1 
+#' @param rho1 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 fun2 <- function(z, cb1, rho1){
   phi <- 2 * asin(1)
   result <- 1 / (2 * phi) ** .5 * exp(-z ** 2 / 2)
@@ -30,14 +50,16 @@ fun2 <- function(z, cb1, rho1){
 
 #' Find c*
 #'
-#' Perform a binary search to identify a*, the optimal stopping time.  Stops
-#' when the range of possible values for c* is less than 0.001 and difference
-#' between alpha and type 1 error rate is < 0.001. Fails if this criterion is
-#' not reached within 100 iterations.
+#' Identify c*, the optimal stopping time to give the desired type 1 error rate,
+#' alpha. Does so by solving equation 9 in the paper (fun1) with a binary
+#' search. Stops when the range of possible values for c* is less than 0.001 and
+#' difference between alpha and type 1 error rate is < 0.001. Fails if this
+#' criterion is not reached within 100 iterations.
 #'
 #' @param alpha float - type 1 error rate
 #' @param c1 float - early stopping value
-#' @param rho0 float - not sure what this is, tbh TODO
+#' @param rho0 the ratio of sigma values: sigma_1/sigma in the paper, s11/s1 in
+#'   code
 #'
 #' @return
 #' @export
@@ -69,6 +91,21 @@ find_c_star <- function(alpha, c1, rho0){
 }
 
 
+#' Calculate power (and critical value)
+#'
+#' @param hz0 - hazard in control group
+#' @param hz1 - hazard in treatment group
+#' @param tau - when to conduct interrim analysis
+#' @param a - accrual rate
+#' @param b - followup period
+#' @param c1 - stopping value
+#' @param alpha - type 1 error rate
+#' @param rate - 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 calculate_power <- function(hz0, hz1, tau, a, b, c1, alpha, rate){
   message("Power calculation with parameters:")
   message(paste("tau: ", tau, "\ta: ", a, "\tc1: ", c1))

@@ -4,34 +4,40 @@ c       minimizing both expected N and study period
 c       Same as size.for, but replacing lambda1 with
 c       lambda=(lambda0+lambda1)/2 in calculating sigma_1^2
 
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c       Input parameters
+c       rate=accruaL rate, b=fu period
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
         reaL med(0:1),s(0:1)
         common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
         externaL fun2
 
-        idum=-1234
-        nsampLe=10000
-
-cccccccccccccccccccccccc
-c       Input parameters
-c       rate=accruaL rate, b=fu period
-ccccccccccccccccccccccccc
+        idum=-1234  ! does nothing?
+        nsampLe=10000 ! does nothing?
 
 c        aLpha=.1
 c        beta=.1
-c        rate=30#
+c        rate=30
 c        b=1
+c        med(0) = 0.1
+c        med(1) = 0.2
 
         read(5,*) aLpha,pwr0,rate,b
         read(5,*) med(0),med(1)
 
         beta=1-pwr0
 
-c       io=1 to minimize EN; =2 to minimize study time
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c MAIN SCRIPT
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+c PRINT INPUTS
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         write(6,*) '**************************************************'
         write(6,*) '******* Single-Stage & Two-Stage Designs *********'
         write(6,*) '**************************************************'
-c        write(6,*)
 
         write(6,*)
         write(6,*) '****************'
@@ -57,6 +63,9 @@ c        write(6,*)
  104    format(3x,'med =',2f7.2)
         write(6,105) hr
  105    format(3x,'haz ratio =',f6.3)
+
+c 1. Select a* for single stage design requiring the smallest sample size
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         a1=.1
         a2=5
@@ -89,8 +98,6 @@ c        write(6,*)
         f1=f3
         endif
 
-c        write(6,*) a1,a2,a3,f1,f2,f3
-
         if(abs(rate*(a2-a1)).Lt..1) go to 6
 
         enddo
@@ -110,9 +117,9 @@ c        write(6,*) a1,a2,a3,f1,f2,f3
         write(6,106) n,a
  106    format(' Single-stage design: n=',i4,' (a=',f6.3,')')
 
-cccccccccccccccccccccccccccccccccccc
-cccccccc N for 2-stage design cccccc
-cccccccccccccccccccccccccccccccccccc
+c 2. Minimize ea over a range of values for a, tau and c1
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
         write(6,*)
         write(6,*) 'Two-stage designs'
 
@@ -182,8 +189,7 @@ cccccccccccccccccccccccccccccccccccc
 
         enddo
 
-c        pause 'Something wrong - 5'
-         go to 99
+        go to 99
 
  8      continue
 
@@ -234,7 +240,9 @@ c SUPPORTING FUNCTIONS BY AUTHOR
 c Supporting functions handwritten by the authors
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-C       Calculate some quantitiy for the selection of single-stage a*
+c       Calculates expected numbers of events in final analysis
+c       (D in manuscript)
+c       not entirely sure what return value is
         function fun(a)
         common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
 
@@ -242,16 +250,16 @@ C       Calculate some quantitiy for the selection of single-stage a*
         v0=hz(0)/hz(1)*v1
         hr=hz(0)/hz(1)
         w=v1-v0
-c        fun=rate*a*(hr-1)**2*v0-(za+zb)**2
 
-         hz1=(hz(0)+hz(1))/2.
-         v=1-exp(-hz1*b)/a/hz1+exp(-hz1*(a+b))/a/hz1
-c         write(6,*) 'v0 v1=',v0,v1,v
+        hz1=(hz(0)+hz(1))/2.
+        v=1-exp(-hz1*b)/a/hz1+exp(-hz1*(a+b))/a/hz1
+
         fun=rate*a-(sqrt(v0)*za+sqrt(v)*zb)**2/w**2
-c        write(6,*) v0,v1
+
 
         return
         end
+
 ccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         function type1(c)
@@ -263,6 +271,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         return
         end
+
 ccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         function fun1(z)
@@ -285,79 +294,42 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccc
         end
 
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
-      FUNCTION ran2(idum)
-      INTEGER idum,IM1,IM2,IMM1,IA1,IA2,IQ1,IQ2,IR1,IR2,NTAB,NDIV
-      REAL ran2,AM,EPS,RNMX
-      PARAMETER (IM1=2147483563,IM2=2147483399,AM=1./IM1,IMM1=IM1-1,
-     *IA1=40014,IA2=40692,IQ1=53668,IQ2=52774,IR1=12211,IR2=3791,
-     *NTAB=32,NDIV=1+IMM1/NTAB,EPS=1.2e-7,RNMX=1.-EPS)
-      INTEGER idum2,j,k,iv(NTAB),iy
-      SAVE iv,iy,idum2
-      DATA idum2/123456789/, iv/NTAB*0/, iy/0/
-      if (idum.Le.0) then
-        idum=max(-idum,1)
-        idum2=idum
-        do 11 j=NTAB+8,1,-1
-          k=idum/IQ1
-          idum=IA1*(idum-k*IQ1)-k*IR1
-          if (idum.Lt.0) idum=idum+IM1
-          if (j.Le.NTAB) iv(j)=idum
-11      continue
-        iy=iv(1)
-      endif
-      k=idum/IQ1
-      idum=IA1*(idum-k*IQ1)-k*IR1
-      if (idum.Lt.0) idum=idum+IM1
-      k=idum2/IQ2
-      idum2=IA2*(idum2-k*IQ2)-k*IR2
-      if (idum2.Lt.0) idum2=idum2+IM2
-      j=1+iy/NDIV
-      iy=iv(j)-idum2
-      iv(j)=idum
-      if(iy.Lt.1)iy=iy+IMM1
-      ran2=min(AM*iy,RNMX)
-      return
-      END
-
-
-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c ZNORM AND SUPPORTING FUNCTIONS
 c Calculates quantiles of standard normal.  Equivalent to qnorm in R
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-        function znorm(x)
-        externaL erf
-        pi=2.*asin(1.)
-        z0=1.
-        do 2 k=1,100
-        f=erf(z0/sqrt(2.))/2.-.5+x
-        df=exp(-z0**2./2.)/sqrt(2.*pi)
-        znorm=z0-f/df
-        if(abs(znorm-z0).Lt..001.and.abs(f).Lt..001) go to 4
-        z0=znorm
- 2      continue
-        write(6,*) 'diverge'
- 4      continue
-        return
-        end
+      function znorm(x)
+      externaL erf
+      pi=2.*asin(1.)
+      z0=1.
+      do 2 k=1,100
+      f=erf(z0/sqrt(2.))/2.-.5+x
+      df=exp(-z0**2./2.)/sqrt(2.*pi)
+      znorm=z0-f/df
+      if(abs(znorm-z0).Lt..001.and.abs(f).Lt..001) go to 4
+      z0=znorm
+2      continue
+      write(6,*) 'diverge'
+4      continue
+      return
+      end
 
 
-        function cdf(x)
-        external erf
-        cdf=.5+.5*erf(x/sqrt(2.))
-        return
-        end
+      function cdf(x)
+      external erf
+      cdf=.5+.5*erf(x/sqrt(2.))
+      return
+      end
 
 
-        function erf(x)
-        if(x.Lt.0.) then
-        erf=-gammp(.5,x**2)
-        eLse
-        erf=gammp(.5,x**2)
-        endif
-        return
-        end
+      function erf(x)
+      if(x.Lt.0.) then
+      erf=-gammp(.5,x**2)
+      eLse
+      erf=gammp(.5,x**2)
+      endif
+      return
+      end
 
 
       FUNCTION gammLn(xx)
@@ -546,5 +518,44 @@ CU    USES poLint,trapzd
         endif
         y=y+dy
 13    continue
+      return
+      END
+
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c NEVER CALLED
+c This function is a pseudorandom number generator. It is never called.
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+      FUNCTION ran2(idum)
+      INTEGER idum,IM1,IM2,IMM1,IA1,IA2,IQ1,IQ2,IR1,IR2,NTAB,NDIV
+      REAL ran2,AM,EPS,RNMX
+      PARAMETER (IM1=2147483563,IM2=2147483399,AM=1./IM1,IMM1=IM1-1,
+     *IA1=40014,IA2=40692,IQ1=53668,IQ2=52774,IR1=12211,IR2=3791,
+     *NTAB=32,NDIV=1+IMM1/NTAB,EPS=1.2e-7,RNMX=1.-EPS)
+      INTEGER idum2,j,k,iv(NTAB),iy
+      SAVE iv,iy,idum2
+      DATA idum2/123456789/, iv/NTAB*0/, iy/0/
+      if (idum.Le.0) then
+        idum=max(-idum,1)
+        idum2=idum
+        do 11 j=NTAB+8,1,-1
+          k=idum/IQ1
+          idum=IA1*(idum-k*IQ1)-k*IR1
+          if (idum.Lt.0) idum=idum+IM1
+          if (j.Le.NTAB) iv(j)=idum
+11      continue
+        iy=iv(1)
+      endif
+      k=idum/IQ1
+      idum=IA1*(idum-k*IQ1)-k*IR1
+      if (idum.Lt.0) idum=idum+IM1
+      k=idum2/IQ2
+      idum2=IA2*(idum2-k*IQ2)-k*IR2
+      if (idum2.Lt.0) idum2=idum2+IM2
+      j=1+iy/NDIV
+      iy=iv(j)-idum2
+      iv(j)=idum
+      if(iy.Lt.1)iy=iy+IMM1
+      ran2=min(AM*iy,RNMX)
       return
       END
