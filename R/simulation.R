@@ -32,8 +32,6 @@ beta <- 1 - power0
 
 # SIMULATION PARAMETERS
 # --------------------------------------------
-idnum <- 1234
-nsample <- 10000
 
 message("Single-Stage and Two-Stage Designs")
 message("Input Parameters:")
@@ -134,7 +132,7 @@ for (i in 1:length(a_values)){
     
     en <- exp_accrual_min * rate
     d1 <- rate * tau_min * (1 - (1 - exp(-hz1 * tau_min)) / (hz1 * tau_min))
-    dd <- n * (1 - exp(-hz1 * b) * (1 - exp(-hz1 * a)) / (hz1 * a))
+    dd <- floor(n) * (1 - exp(-hz1 * b) * (1 - exp(-hz1 * a)) / hz1 / a)
     
     row_i <- c(n, a, n1, tau_min, c1_min, c_min, exp_accrual_min, en,
                p_early_termination_min, power_min, d1, dd) 

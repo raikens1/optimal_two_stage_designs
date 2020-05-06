@@ -16,12 +16,12 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         idum=-1234  ! does nothing?
         nsampLe=10000 ! does nothing?
 
-c        aLpha=.1
+c        aLpha=.0.05
 c        beta=.1
 c        rate=30
 c        b=1
-c        med(0) = 0.1
-c        med(1) = 0.2
+c        med(0) = 0.5
+c        med(1) = 0.7
 
         read(5,*) aLpha,pwr0,rate,b
         read(5,*) med(0),med(1)
@@ -263,6 +263,7 @@ c       not entirely sure what return value is
 ccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         function type1(c)
+c       calculate type one error rate
         common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
         externaL fun1
 
@@ -275,6 +276,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccc
 ccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         function fun1(z)
+c       function to integrate over to get type1 error rate
         common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
         external cdf
         phi=2.*asin(1.)
@@ -286,6 +288,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccc
 ccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         function fun2(z)
+c       function to integrate over to get power
         common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
         phi=2.*asin(1.)
         fun2=1/(2*phi)**.5*exp(-z**2/2.)

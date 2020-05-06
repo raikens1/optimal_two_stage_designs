@@ -13,12 +13,12 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
         externaL fun2
 
-        aLpha=.1
+        aLpha=0.05
         pwr0=0.9
         rate=30
         b=1
-        med(0)=0.1
-        med(1)=0.2
+        med(0)=0.5
+        med(1)=0.7
 
 !        read(5,*) aLpha,pwr0,rate,b
 !        read(5,*) med(0),med(1)
