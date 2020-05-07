@@ -4,22 +4,25 @@
 # Adapted from Kwak and Jung, 2014 
 # Translated from Fortran to R
 
-#' Fun
+#' Equation 3 from paper
+#'
+#' Gives difference between right and left hand sides of equation 3 in paper (I
+#' think?).  Applied by find_a_star to solve for the value of a giving minimal
+#' sample size in a one-stage study
 #' 
-#' TODO: this needs a better name and description
+#' NOTE: depends on b, hz1, hz0, za, and zb from global environment.
 #'
 #' @param a an accrual period
 #'
-#' @return result TODO: what is this?
+#' @return difference between right and left hand sides of equation 3 in paper (I
+#' think?)
 #'
 #' @examples
 fun <- function(a) {
-  # expected number of events at final analysis in treatment group (D in paper)
   v1 <- 1 - exp(-hz1 * b)/ (a * hz1) + exp(-hz1 * (a + b))/ (a * hz1)
   
-  # expected number of events at final analysis in control group
   v0 <- v1 * hz0 / hz1 
-  hr <- hz0 / hz1 # TODO why reassign hr?  exactly the same as med(1)/med(0) from original definition
+  hr <- hz0 / hz1
   w <- v1 - v0
   
   # expected number of events in combined treat and control groups at final analysis

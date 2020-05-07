@@ -4,6 +4,18 @@
 # Adapted from Kwak and Jung, 2014 
 # Translated from Fortran to R
 
+#' Calculate difference between type 1 error rate and alpha
+#'
+#' Calculates right hand side of equation 9 from Kwak and Jung, 2014.  Called by
+#' find_c_star to search for appropriate critical value (c).
+#'
+#' @param c critical value
+#' @param alpha type 1 error rate
+#' @param c1 early stopping value
+#' @param rho0 the ratio of sigma values: sigma_1/sigma in the paper, s11/s1 in
+#'   code
+#'
+#' @return alpha - P(type 1 error)
 type1 <- function(c, alpha, c1, rho0){
   value <- integrate(f = fun1, lower = -10, upper = c,
                      c1 = c1, rho0 = rho0)$value
@@ -19,10 +31,7 @@ type1 <- function(c, alpha, c1, rho0){
 #' @param rho0 the ratio of sigma values: sigma_1/sigma in the paper, s11/s1 in
 #'   code
 #'
-#' @return
-#' @export
-#'
-#' @examples
+#' @return float evaluation of integrand
 fun1 <- function(z, c1, rho0){
   result <- dnorm(z) * pnorm((c1 - rho0 * z)/sqrt(1 - rho0 ** 2))
   return(result)
@@ -31,40 +40,34 @@ fun1 <- function(z, c1, rho0){
 
 #' Function 2
 #' 
-#' Integrand to calculate power from a given cb1 and rho1
+#' Integrand to calculate power from a given c1_bar and rho1 (text, pg 10)
 #'
-#' @param z quantitiy to integrate over (from -infty to cb)
-#' @param cb1 
-#' @param rho1 
+#' @param z quantitiy to integrate over (from -infty to c_bar)
+#' @param c1_bar variable calculated from sigmas, w1 and n1 (see text, pg 10)
+#' @param rho1 variable calculated from sigmas (see text, pg 9)
 #'
-#' @return
-#' @export
-#'
-#' @examples
-fun2 <- function(z, cb1, rho1){
+#' @return float evaluation of integrand
+fun2 <- function(z, c1_bar, rho1){
   phi <- 2 * asin(1)
   result <- 1 / (2 * phi) ** .5 * exp(-z ** 2 / 2)
-  result <- result * pnorm((cb1 - rho1 * z)/ sqrt(1 - rho1 ** 2))
+  result <- result * pnorm((c1_bar - rho1 * z)/ sqrt(1 - rho1 ** 2))
   return(result)
 }
 
 #' Find c*
 #'
-#' Identify c*, the optimal stopping time to give the desired type 1 error rate,
-#' alpha. Does so by solving equation 9 in the paper (fun1) with a binary
-#' search. Stops when the range of possible values for c* is less than 0.001 and
-#' difference between alpha and type 1 error rate is < 0.001. Fails if this
-#' criterion is not reached within 100 iterations.
+#' Identify c*, the critical value giving the desired type 1 error rate, alpha.
+#' Does so by solving equation 9 in the paper (fun1) with a binary search. Stops
+#' when the range of possible values for c* is less than 0.001 and difference
+#' between alpha and type 1 error rate is < 0.001. Fails if this criterion is
+#' not reached within 100 iterations.
 #'
 #' @param alpha float - type 1 error rate
 #' @param c1 float - early stopping value
 #' @param rho0 the ratio of sigma values: sigma_1/sigma in the paper, s11/s1 in
 #'   code
 #'
-#' @return
-#' @export
-#'
-#' @examples
+#' @return critical value giving type 1 error rate alpha
 find_c_star <- function(alpha, c1, rho0){
   c_min <- -3
   f_min <- type1(c_min, alpha, c1, rho0) 
@@ -96,19 +99,15 @@ find_c_star <- function(alpha, c1, rho0){
 #' @param hz0 - hazard in control group
 #' @param hz1 - hazard in treatment group
 #' @param tau - when to conduct interrim analysis
-#' @param a - accrual rate
+#' @param a - accrual period
 #' @param b - followup period
 #' @param c1 - stopping value
 #' @param alpha - type 1 error rate
-#' @param rate - 
+#' @param rate - expected accrual rate
 #'
-#' @return
-#' @export
-#'
-#' @examples
+#' @return vector with power and critical value
 calculate_power <- function(hz0, hz1, tau, a, b, c1, alpha, rate){
-  message("Power calculation with parameters:")
-  message(paste("tau: ", tau, "\ta: ", a, "\tc1: ", c1))
+  # calculate sigmas and w
   hr <- hz0/hz1
   v1 <- 1 - (1 - exp(-hz0 * tau)) / (tau * hz0)
   v <- 1 - (1 - exp(-hz0 * a)) * exp(-hz0*b) / (a * hz0)
@@ -121,19 +120,22 @@ calculate_power <- function(hz0, hz1, tau, a, b, c1, alpha, rate){
   w1 <- s11 - s01
   w <- s1 - s0
   
+  # calculate rho0, rho1
   hz.mean <- (hz0 + hz1) / 2
-  s11 <- 1 - (1 - exp(-hz.mean * tau)) / (tau * hz.mean)
-  s1 <- 1 - (1 - exp(-hz.mean * a)) * exp(-hz.mean*b) / (a * hz.mean)
+  s11 <- 1 - (1 - exp(-hz.mean * tau)) / (tau * hz.mean) # awful variable naming...
+  s1 <- 1 - (1 - exp(-hz.mean * a)) * exp(-hz.mean*b) / (a * hz.mean) 
   rho0 <- sqrt(v1/v)
   rho1 <- sqrt(s11/s1)
   
+  # find critical value
   c <- find_c_star(alpha, c1, rho0)
   
-  cb1 <- sqrt(s01 / s11) * (c1 - w1 * sqrt(rate * tau)/ sqrt(s01))
-  cb <- sqrt(s0 / s1) * (c - w * sqrt(rate * a) / sqrt(s0))
+  c1_bar <- sqrt(s01 / s11) * (c1 - w1 * sqrt(rate * tau)/ sqrt(s01))
+  c_bar <- sqrt(s0 / s1) * (c - w * sqrt(rate * a) / sqrt(s0))
   
-  power <- integrate(f = fun2, lower = -10, upper = cb, 
-                   cb1 = cb1, rho1 = rho1)$value
+  # calculate power
+  power <- integrate(f = fun2, lower = -10, upper = c_bar, 
+                   c1_bar = c1_bar, rho1 = rho1)$value
   
-  return(list(power = power, c_star = c))
+  return(c(power, c))
 }

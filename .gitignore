@@ -2,3 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
+fortran/result_1
+R/result_raw.csv
