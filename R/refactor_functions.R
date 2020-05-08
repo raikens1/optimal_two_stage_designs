@@ -12,8 +12,8 @@ search_power <- function(row){
   a <- row$a 
   c1 <- row$c1
   
-  #tau_values <- seq(1/rate, a + b, by = 1/rate) # what the fortran code does
-  tau_values <- seq(0.2 * a0, 1.2*a0, by = 1/rate) # what the paper says
+  tau_values <- seq(1/rate, a + b, by = 1/rate) # what the fortran code does
+  #tau_values <- seq(0.2 * a0, 1.2*a0, by = 1/rate) # what the paper says
   
   tau_results <- sapply(tau_values, calculate_power,
                         hz0 = hz0, hz1 = hz1, a = a, b = b,

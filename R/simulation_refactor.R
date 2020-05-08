@@ -27,7 +27,7 @@ t_start = proc.time()
 # --------------------------------------------------------
 alpha <- 0.05
 power0 <- 0.9
-rate <- 30
+rate <- 60
 b <- 1
 med0 <- log(2)/0.7
 med1 <- log(2)/0.5
@@ -80,11 +80,11 @@ message("a*:", a0)
 # both versions here (search_power() function in refactor_functions.R sets up
 # the tau values to search)
 
-#a_values <- seq(0.95*a0, 1.5*a0, by = 1/rate) # what the fortran code does
-a_values <- seq(0.8*a0, 1.5*a0, by = 1/rate) # what the paper says
+a_values <- seq(0.95*a0, 1.5*a0, by = 1/rate) # what the fortran code does
+#a_values <- seq(0.8*a0, 1.5*a0, by = 1/rate) # what the paper says
 
-#c1_values <- seq(-0.5, 1.5, by = 0.005) # what the fortran code does
-c1_values <- seq(-0.2, 1, by = 0.005) # what the paper says
+c1_values <- seq(-0.5, 1.5, by = 0.005) # what the fortran code does
+#c1_values <- seq(-0.2, 1, by = 0.005) # what the paper says
 
 
 # -------------------------------------------- 
@@ -96,6 +96,7 @@ search_grid <- expand.grid(a_values, c1_values) %>%
   rename(a = Var1, c1 = Var2)
 
 # calculate power for all values of a, c1, and tau
+# this command may take 10-20 minutes to run, depending on starting parameters
 result_raw <- search_grid %>% 
   group_by(a, c1) %>%
   do(search_power(.)) %>%
@@ -114,7 +115,7 @@ result <- result_raw %>%
          D = floor(n) * (1 - exp(-hz1 * b) * (1 - exp(-hz1 * a)) / (hz1 * a))) %>%
   group_by(a) %>%
   filter(EA == min(EA)) %>%
-  select(n, a, n1, tau, c1, c, EA, EN, PET, power, D1, D)
+  select(n, a, n1, tau, c1, c, EA, EN, PET, power, D1, D) %>%
+  ungroup()
 
-# runtimes of 10-20 minutes are common, depending on starting parameters
 runtime <- proc.time() - t_start
