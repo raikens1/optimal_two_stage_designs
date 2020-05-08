@@ -228,7 +228,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         d1=rate*taum*(1-(1-exp(-hz(1)*taum))/hz(1)/taum)
         dd=n*(1-exp(-hz(1)*b)*(1-exp(-hz(1)*a))/hz(1)/a)
         write(6,108) n,a,n1,taum,c1m,cm,eam,en,petm,pwrm,d1,dd
- 108    format(i4,' (',f4.1,')',i4,f7.1,2f8.3,2f7.1,4f7.2)
+ 108    format(i4,' (',f4.2,')',i4,f7.2,2f8.3,2f7.2,4f7.2)
 
  77     continue
 

@@ -48,6 +48,7 @@ fun <- function(a) {
 select_a_limits <- function(a_min, a_max){
   f_min <- fun(a_min)
   f_max <- fun(a_max)
+  message(paste(f_min, ", ", f_max))
   
   # if f_min and f_max have the same sign,
   # move a_min and a_max farther apart until they have different signs
@@ -106,7 +107,7 @@ find_a_star <- function(a_limits){
     
     # stop if the range a_min to a_max is small enough that sample size is the
     # same across the whole interval
-    if (abs(rate * (a_min - a_max)) < 1) {
+    if (abs(rate * (a_min - a_max)) < .1) {
       message(abs(rate * (a_min - a_max)))
       break
     }

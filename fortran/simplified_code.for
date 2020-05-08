@@ -17,8 +17,8 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         pwr0=0.9
         rate=30
         b=1
-        med(0)=0.5
-        med(1)=0.7
+        med(0)=aLog(2.)/0.7
+        med(1)=aLog(2.)/0.5
 
 !        read(5,*) aLpha,pwr0,rate,b
 !        read(5,*) med(0),med(1)
@@ -91,6 +91,7 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
          a3=(a1+a2)/2.
          f3=fun(a3)
+         write(6,*) a3,f3
 
          if(f1*f3.Lt.0.) then
          a2=a3
@@ -132,6 +133,67 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         a0=a
         ntau=1000
 
+        a=3.542604
+        c1=-0.08
+        tau=1.843984
+
+        v1=1-(1-exp(-hz(0)*tau))/tau/hz(0)
+        v=1-(1-exp(-hz(0)*a))*exp(-hz(0)*b)/a/hz(0)
+        s11=1-(1-exp(-hz(1)*tau))/tau/hz(1)
+        s1=1-(1-exp(-hz(1)*a))*exp(-hz(1)*b)/a/hz(1)
+        s01=hr*s11
+        s0=hr*s1
+        w1=s11-s01
+        w=s1-s0
+
+        hz1=(hz(0)+hz(1))/2.
+        s11=1-(1-exp(-hz1*tau))/tau/hz1
+        s1=1-(1-exp(-hz1*a))*exp(-hz1*b)/a/hz1
+        rho0=sqrt(v1/v)
+        rho1=sqrt(s11/s1)
+
+        c21=-3
+        f1=type1(c21)
+        c22=0
+        f2=type1(c22)
+
+        if(f1*f2.gt.0.) pause'something wrong-4'
+
+        do it=1,100
+
+        c23=(c21+c22)/2.
+        f3=type1(c23)
+
+        if(f1*f3.Lt.0.) then
+        c22=c23
+        f2=f3
+        eLse
+        c21=c23
+        f1=f3
+        endif
+
+        if(abs(c21-c22).Lt..001.and.abs(f3).Lt.0.001) go to 8
+
+        enddo
+
+ 8      continue
+
+        c=c23
+        write(6,*) c
+
+        pet=1-cdf(c1)
+        ea=a-pet*amax1(0.,(a-tau))
+
+        write(6,*) c1
+        write(6,*) pet, ea
+
+        cb1=sqrt(s01/s11)*(c1-w1*sqrt(rate*tau)/sqrt(s01))
+        cb=sqrt(s0/s1)*(c-w*sqrt(rate*a)/sqrt(s0))
+
+        caLL qromb(fun2,-10.,cb,pwr)
+
+        write(6,*) pwr
+
       end
 
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -139,10 +201,10 @@ c SUPPORTING FUNCTIONS BY AUTHOR
 c Supporting functions handwritten by the authors
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-        function fun(a)
 c       Calculates expected numbers of events in final analysis
 c       (D in manuscript)
 c       not entirely sure what return value is
+        function fun(a)
         common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
 
         v1=1-exp(-hz(1)*b)/a/hz(1)+exp(-hz(1)*(a+b))/a/hz(1)
@@ -155,16 +217,18 @@ c       not entirely sure what return value is
 
         fun=rate*a-(sqrt(v0)*za+sqrt(v)*zb)**2/w**2
 
+
         return
         end
 
 ccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         function type1(c)
+c       calculate type one error rate
         common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
         externaL fun1
-        caLL qromb(fun1,-10.,c,ss)
 
+        caLL qromb(fun1,-10.,c,ss)
         type1=ss-aLpha
 
         return
@@ -173,6 +237,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccc
 ccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         function fun1(z)
+c       function to integrate over to get type1 error rate
         common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
         external cdf
         phi=2.*asin(1.)
@@ -181,8 +246,10 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccc
         return
         end
 
+ccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         function fun2(z)
+c       function to integrate over to get power
         common aLpha,rate,za,zb,b,hz(0:1),event,c1,rho0,cb1,rho1
         phi=2.*asin(1.)
         fun2=1/(2*phi)**.5*exp(-z**2/2.)
@@ -415,5 +482,44 @@ CU    USES poLint,trapzd
         endif
         y=y+dy
 13    continue
+      return
+      END
+
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c NEVER CALLED
+c This function is a pseudorandom number generator. It is never called.
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+      FUNCTION ran2(idum)
+      INTEGER idum,IM1,IM2,IMM1,IA1,IA2,IQ1,IQ2,IR1,IR2,NTAB,NDIV
+      REAL ran2,AM,EPS,RNMX
+      PARAMETER (IM1=2147483563,IM2=2147483399,AM=1./IM1,IMM1=IM1-1,
+     *IA1=40014,IA2=40692,IQ1=53668,IQ2=52774,IR1=12211,IR2=3791,
+     *NTAB=32,NDIV=1+IMM1/NTAB,EPS=1.2e-7,RNMX=1.-EPS)
+      INTEGER idum2,j,k,iv(NTAB),iy
+      SAVE iv,iy,idum2
+      DATA idum2/123456789/, iv/NTAB*0/, iy/0/
+      if (idum.Le.0) then
+        idum=max(-idum,1)
+        idum2=idum
+        do 11 j=NTAB+8,1,-1
+          k=idum/IQ1
+          idum=IA1*(idum-k*IQ1)-k*IR1
+          if (idum.Lt.0) idum=idum+IM1
+          if (j.Le.NTAB) iv(j)=idum
+11      continue
+        iy=iv(1)
+      endif
+      k=idum/IQ1
+      idum=IA1*(idum-k*IQ1)-k*IR1
+      if (idum.Lt.0) idum=idum+IM1
+      k=idum2/IQ2
+      idum2=IA2*(idum2-k*IQ2)-k*IR2
+      if (idum2.Lt.0) idum2=idum2+IM2
+      j=1+iy/NDIV
+      iy=iv(j)-idum2
+      iv(j)=idum
+      if(iy.Lt.1)iy=iy+IMM1
+      ran2=min(AM*iy,RNMX)
       return
       END
